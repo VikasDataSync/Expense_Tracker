@@ -1,0 +1,52 @@
+1. The claude.md File
+LLMs do not have memory between sessions. claude.md acts as a persistent system prompt for your project, ensuring consistent context.
+
+Purpose: Stores project instructions, coding conventions, architecture, and constraints (0:01:08 - 0:05:10).
+Creation:
+Manually create claude.md in the project root (0:08:30).
+Use claude init to scan the codebase and auto-generate the file (0:05:45).
+Best Practices:
+Keep it under 200 lines (0:32:40).
+Focus on universally applicable rules (0:31:19).
+Use it as a living document—update it after finishing features (0:37:43).
+If the file gets too large, use claude/rules/ for modular files or sub-directory claude.md files (0:34:09 - 0:37:32).
+2. The .claude Folder
+This serves as the project's toolbox for configurations.
+
+Project Level (./.claude): Scoped to a specific project and committed to the repository (0:19:18).
+Global/User Level (~/.claude): Stored in your home directory, applies to all projects, and is never shared (0:19:47).
+Structure: Includes settings, custom commands, and sub-agents (0:17:58).
+3. Auto Memory
+Claude Code silently observes patterns and insights during your work and saves them into a memory.md file (0:39:36).
+
+File Location: ~/.claude/projects/[PROJECT_NAME]/memory/memory.md (0:41:26).
+Functionality: It automatically loads with your session, helping Claude "remember" your preferences (e.g., currency, time zones) without manual intervention (0:40:49).
+Manual Updates: You can force an update to memory by prompting: "Based on what we discussed, update your memory file" (0:44:48).
+Summary of Key Commands
+claude init: Initializes the project and generates the initial claude.md (0:05:45).
+claude memory: Opens the menu to view or edit Project Memory, User Memory, or the Auto Memory folder (0:42:44).
+
+In the context of Claude Code, .md files serve as persistent memory and instruction guides. Based on the video, there are several types of these files depending on their location and scope, which help Claude understand your project requirements across different sessions:
+
+Project-level claude.md (25:13-25:28): Located in the project's root directory, this file stores project instructions, coding conventions, and architecture details. It is committed to the repository and shared with the entire team. Claude automatically loads this file at the start of every session.
+
+claude.local.md (25:34-26:40): These files are used for personal preferences specific to a project. Because they are automatically added to .gitignore, they are never uploaded to the repository, ensuring your private workflows or local settings remain private.
+
+User-level (Global) claude.md (26:44-27:28): Stored in the .claude folder within your machine’s home directory. This file holds your personal coding style, preferred tools, and general working habits that apply across all your projects, not just one.
+
+Sub-directory claude.md (27:31-29:25): You can place these files inside specific sub-folders (e.g., a /database or /frontend folder). These provide context specific to those modules. While they aren't loaded at the very start of a session, Claude recursively checks for them and loads them when it starts working within that specific sub-directory.
+
+memory.md (39:49-43:31): While technically a separate file, it acts as a form of persistent memory. Claude automatically records its observations, patterns, and project-specific insights into this file as it works. You can access it via the memory command to view or edit these learned behaviors.
+
+
+Keep it concise: Aim to keep your claude.md file under 200 lines. Large files can degrade the quality of instruction following (32:38-33:27).
+Universal scope only: Only include information that is universally applicable to the entire project. If a detail only applies to a specific feature or section, it does not belong in the main claude.md file (31:16-31:42).
+
+Treat it as a 'Living Document': Do not just set it and forget it. Update the file as you develop new features, remove irrelevant instructions, and commit your changes to version control (37:40-38:13).
+Strategic use of 'Important': You can mark specific lines with the word IMPORTANT to emphasize critical rules, but use this sparingly. As the rule goes: If everything is important, nothing is (31:44-32:37).
+
+Handle large projects by splitting: If your configuration exceeds 200 lines, use the rules/ folder inside .claude/ to store topic-specific files (e.g., security.md, testing.md). This allows for lazy loading, where Claude only pulls in the relevant rules as needed (33:47-36:34).
+
+Periodically audit: Regularly review your instructions to check for 'instruction drift'. Rules created at the start of a project may become redundant or even counter-productive over time (38:51-39:22).
+
+Codeify patterns: If you find yourself correcting the same mistake repeatedly, don't just fix the code—add an instruction to your claude.md to prevent it from happening again (38:15-38:50).
