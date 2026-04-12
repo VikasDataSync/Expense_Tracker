@@ -15,6 +15,37 @@ def get_db():
     return conn
 
 
+def create_user(name, email, password):
+    """
+    Creates a new user in the database.
+    Returns the new user's ID if successful.
+    Raises sqlite3.IntegrityError if the email already exists.
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        password_hash = generate_password_hash(password)
+        cursor.execute(
+            "INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)",
+            (name, email, password_hash)
+        )
+        conn.commit()
+        return cursor.lastrowid
+    finally:
+        conn.close()
+
+
+def get_user_by_email(email):
+    """
+    Retrieve a user record by their email address.
+    Returns the user row if found, otherwise None.
+    """
+    conn = get_db()
+    user = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+    conn.close()
+    return user
+
+
 def init_db():
     """
     Create the database tables if they don't exist.
