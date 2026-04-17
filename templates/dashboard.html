@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard — Spendly{% endblock %}
+
+{% block content %}
+<section class="dashboard-page">
+    <div class="dashboard-inner">
+        <header class="dashboard-header">
+            <div>
+                <h1 class="dashboard-title">Welcome back, {{ user_name }}</h1>
+                <p class="dashboard-subtitle">Here is a quick snapshot of your spending this month.</p>
+            </div>
+            <a href="{{ url_for('add_expense') }}" class="btn-primary">Add expense</a>
+        </header>
+
+        <section class="dashboard-summary-grid">
+            {% for stat in summary_stats %}
+            <article class="dashboard-stat-card">
+                <p class="dashboard-stat-label">{{ stat.label }}</p>
+                <p class="dashboard-stat-value">{{ stat.value }}</p>
+                <p class="dashboard-stat-change {{ stat.trend }}">{{ stat.change }}</p>
+            </article>
+            {% endfor %}
+        </section>
+
+        <div class="dashboard-content-grid">
+            <section class="dashboard-panel">
+                <div class="dashboard-panel-header">
+                    <h2>Recent transactions</h2>
+                    <a href="#" class="dashboard-link">View all</a>
+                </div>
+                <div class="dashboard-table-wrap">
+                    <table class="dashboard-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Description</th>
+                                <th>Category</th>
+                                <th class="dashboard-number-col">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for transaction in recent_transactions %}
+                            <tr>
+                                <td>{{ transaction.date }}</td>
+                                <td>{{ transaction.description }}</td>
+                                <td>
+                                    <span class="dashboard-category-badge {{ transaction.category_class }}">
+                                        {{ transaction.category }}
+                                    </span>
+                                </td>
+                                <td class="dashboard-number-col">
+                                    <span class="dashboard-amount {{ transaction.amount_type }}">{{ transaction.amount }}</span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <aside class="dashboard-panel">
+                <div class="dashboard-panel-header">
+                    <h2>Category breakdown</h2>
+                </div>
+                <div class="dashboard-breakdown-list">
+                    {% for category in category_breakdown %}
+                    <div class="dashboard-breakdown-item">
+                        <div class="dashboard-breakdown-meta">
+                            <span>{{ category.name }}</span>
+                            <span>{{ category.total }}</span>
+                        </div>
+                        <div class="dashboard-progress-track">
+                            <span class="dashboard-progress-fill {{ category.bar_class }}"></span>
+                        </div>
+                        <p class="dashboard-breakdown-share">{{ category.share }} of total spending</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </aside>
+        </div>
+    </div>
+</section>
+{% endblock %}
