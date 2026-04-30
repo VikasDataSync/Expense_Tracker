@@ -106,16 +106,16 @@ def seed_db():
     cursor.execute("SELECT id FROM users WHERE email = ?", ("demo@spendly.com",))
     user_id = cursor.fetchone()["id"]
 
-    # Insert 8 sample expenses across categories
+    # Insert 8 sample expenses across 7 categories
     sample_expenses = [
-        (500.00, "Food", "2026-04-01", "Breakfast at cafe"),
-        (150.50, "Transport", "2026-04-02", "Uber ride to airport"),
-        (2500.00, "Bills", "2026-04-03", "Electricity bill"),
-        (800.00, "Health", "2026-04-04", "Pharmacy"),
-        (1200.00, "Entertainment", "2026-04-05", "Movie tickets and dinner"),
-        (3500.00, "Shopping", "2026-04-06", "New shoes"),
-        (200.00, "Other", "2026-04-07", "Gift for friend"),
-        (350.75, "Food", "2026-04-08", "Grocery shopping"),
+        (42.50, "Food", "2026-04-01", "Breakfast at cafe"),
+        (25.00, "Transport", "2026-04-02", "Metro recharge"),
+        (120.00, "Bills", "2026-04-03", "Electricity bill"),
+        (28.74, "Health", "2026-04-04", "Pharmacy purchase"),
+        (40.00, "Entertainment", "2026-04-05", "Movie ticket"),
+        (35.00, "Shopping", "2026-04-06", "Household essentials"),
+        (25.00, "Other", "2026-04-07", "Stationery"),
+        (30.00, "Food", "2026-04-08", "Groceries"),
     ]
 
     for amount, category, date, description in sample_expenses:
