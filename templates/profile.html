@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}Profile — Spendly{% endblock %}
+
+{% block content %}
+<section class="dashboard-page">
+    <div class="dashboard-inner">
+        <header class="dashboard-header">
+            <div>
+                <h1 class="dashboard-title">Your profile</h1>
+                <p class="dashboard-subtitle">Your account details and full expense snapshot.</p>
+            </div>
+            <a href="{{ url_for('add_expense') }}" class="btn-primary">Add expense</a>
+        </header>
+
+        <section class="dashboard-panel">
+            <div class="dashboard-panel-header">
+                <h2>User details</h2>
+            </div>
+            <p><strong>{{ user.name }}</strong></p>
+            <p>{{ user.email }}</p>
+            <p class="dashboard-breakdown-share">Member since {{ user.member_since }}</p>
+        </section>
+
+        <section class="dashboard-summary-grid">
+            <article class="dashboard-stat-card">
+                <p class="dashboard-stat-label">Total spent</p>
+                <p class="dashboard-stat-value">{{ "₹{:,.2f}".format(summary_stats.total_spent) }}</p>
+                <p class="dashboard-stat-change neutral">All expenses recorded</p>
+            </article>
+            <article class="dashboard-stat-card">
+                <p class="dashboard-stat-label">Transactions</p>
+                <p class="dashboard-stat-value">{{ summary_stats.transaction_count }}</p>
+                <p class="dashboard-stat-change neutral">Total entries</p>
+            </article>
+            <article class="dashboard-stat-card">
+                <p class="dashboard-stat-label">Top category</p>
+                <p class="dashboard-stat-value">{{ summary_stats.top_category }}</p>
+                <p class="dashboard-stat-change neutral">Highest category spend</p>
+            </article>
+        </section>
+
+        <div class="dashboard-content-grid">
+            <section class="dashboard-panel">
+                <div class="dashboard-panel-header">
+                    <h2>Recent transactions</h2>
+                </div>
+                <div class="dashboard-table-wrap">
+                    <table class="dashboard-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Description</th>
+                                <th>Category</th>
+                                <th class="dashboard-number-col">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if recent_transactions %}
+                                {% for transaction in recent_transactions %}
+                                <tr>
+                                    <td>{{ transaction.date }}</td>
+                                    <td>{{ transaction.description }}</td>
+                                    <td>
+                                        <span class="dashboard-category-badge {{ transaction.category|lower }}">
+                                            {{ transaction.category }}
+                                        </span>
+                                    </td>
+                                    <td class="dashboard-number-col">
+                                        <span class="dashboard-amount negative">{{ "₹{:,.2f}".format(transaction.amount) }}</span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="4">No transactions yet.</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <aside class="dashboard-panel">
+                <div class="dashboard-panel-header">
+                    <h2>Category breakdown</h2>
+                </div>
+                <div class="dashboard-breakdown-list">
+                    {% if category_breakdown %}
+                        {% for category in category_breakdown %}
+                        <div class="dashboard-breakdown-item">
+                            <div class="dashboard-breakdown-meta">
+                                <span>{{ category.name }}</span>
+                                <span>{{ "₹{:,.2f}".format(category.amount) }}</span>
+                            </div>
+                            <p class="dashboard-breakdown-share">{{ category.pct }}% of total spending</p>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="dashboard-breakdown-share">No category data yet.</p>
+                    {% endif %}
+                </div>
+            </aside>
+        </div>
+    </div>
+</section>
+{% endblock %}

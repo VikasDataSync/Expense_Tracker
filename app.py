@@ -1,10 +1,20 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, abort, session
 from database.db import get_db, init_db, seed_db, create_user, get_user_by_email
+from database.queries import (
+    get_user_by_id,
+    get_summary_stats,
+    get_recent_transactions,
+    get_category_breakdown,
+)
 import sqlite3
 from werkzeug.security import check_password_hash
 
 app = Flask(__name__)
 app.secret_key = "dev-secret-key-for-spendly"
+
+
+def format_inr(amount):
+    return f"₹{amount:,.2f}"
 
 
 # ------------------------------------------------------------------ #
@@ -69,102 +79,68 @@ def dashboard():
     if not session.get("user_id"):
         return redirect(url_for("login"))
 
+    user_id = session["user_id"]
+    summary = get_summary_stats(user_id)
+
     summary_stats = [
         {
-            "label": "This month spending",
-            "value": "₹18,240",
-            "change": "+8% vs last month",
-            "trend": "negative",
+            "label": "Total spent",
+            "value": format_inr(summary["total_spent"]),
+            "change": "All-time spending",
+            "trend": "neutral",
         },
         {
             "label": "Transactions",
-            "value": "34",
-            "change": "6 more than last month",
+            "value": str(summary["transaction_count"]),
+            "change": "Recorded expenses",
             "trend": "neutral",
-        },
-        {
-            "label": "Budget left",
-            "value": "₹6,760",
-            "change": "43% remaining",
-            "trend": "positive",
         },
         {
             "label": "Top category",
-            "value": "Food",
-            "change": "₹7,120 total",
+            "value": summary["top_category"],
+            "change": "Highest total spend",
+            "trend": "neutral",
+        },
+        {
+            "label": "Categories",
+            "value": str(len(get_category_breakdown(user_id))),
+            "change": "Expense categories",
             "trend": "neutral",
         },
     ]
 
-    recent_transactions = [
-        {
-            "date": "17 Apr 2026",
-            "description": "Swiggy dinner order",
-            "category": "Food",
-            "category_class": "food",
-            "amount": "-₹740",
-            "amount_type": "negative",
-        },
-        {
-            "date": "16 Apr 2026",
-            "description": "Uber to office",
-            "category": "Transport",
-            "category_class": "transport",
-            "amount": "-₹320",
-            "amount_type": "negative",
-        },
-        {
-            "date": "15 Apr 2026",
-            "description": "Electricity bill",
-            "category": "Bills",
-            "category_class": "bills",
-            "amount": "-₹2,450",
-            "amount_type": "negative",
-        },
-        {
-            "date": "14 Apr 2026",
-            "description": "Headphones purchase",
-            "category": "Shopping",
-            "category_class": "shopping",
-            "amount": "-₹1,999",
-            "amount_type": "negative",
-        },
-        {
-            "date": "13 Apr 2026",
-            "description": "Refund from merchant",
-            "category": "Other",
-            "category_class": "other",
-            "amount": "+₹430",
-            "amount_type": "positive",
-        },
-    ]
+    recent_transactions = []
+    for item in get_recent_transactions(user_id):
+        recent_transactions.append(
+            {
+                "date": item["date"],
+                "description": item["description"],
+                "category": item["category"],
+                "category_class": item["category"].lower(),
+                "amount": format_inr(item["amount"]),
+                "amount_type": "negative",
+            }
+        )
 
-    category_breakdown = [
-        {
-            "name": "Food",
-            "total": "₹7,120",
-            "share": "39%",
-            "bar_class": "bar-fill-39",
-        },
-        {
-            "name": "Bills",
-            "total": "₹4,980",
-            "share": "27%",
-            "bar_class": "bar-fill-27",
-        },
-        {
-            "name": "Shopping",
-            "total": "₹3,620",
-            "share": "20%",
-            "bar_class": "bar-fill-20",
-        },
-        {
-            "name": "Transport",
-            "total": "₹2,520",
-            "share": "14%",
-            "bar_class": "bar-fill-14",
-        },
-    ]
+    category_breakdown = []
+    for item in get_category_breakdown(user_id):
+        if item["pct"] >= 33:
+            bar_class = "bar-fill-39"
+        elif item["pct"] >= 24:
+            bar_class = "bar-fill-27"
+        elif item["pct"] >= 17:
+            bar_class = "bar-fill-20"
+        else:
+            bar_class = "bar-fill-14"
+
+        category_breakdown.append(
+            {
+                "name": item["name"],
+                "total": format_inr(item["amount"]),
+                "share": f"{item['pct']}%",
+                "bar_class": bar_class,
+            }
+        )
 
     return render_template(
         "dashboard.html",
@@ -198,7 +174,23 @@ def logout():
 
 @app.route("/profile")
 def profile():
-    return "Profile page — coming in Step 4"
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+
+    user = get_user_by_id(session["user_id"])
+    if user is None:
+        session.clear()
+        return redirect(url_for("login"))
+
+    session["user_name"] = user["name"]
+
+    return render_template(
+        "profile.html",
+        user=user,
+        summary_stats=get_summary_stats(session["user_id"]),
+        recent_transactions=get_recent_transactions(session["user_id"], limit=10),
+        category_breakdown=get_category_breakdown(session["user_id"]),
+    )
 
 
 @app.route("/expenses/add")
