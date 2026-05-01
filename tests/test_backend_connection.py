@@ -5,7 +5,7 @@ import pytest
 
 from app import app as flask_app
 from database import db as db_module
-from database.db import get_db, init_db, seed_db
+from database.db import create_expense, get_db, init_db, seed_db
 from database.queries import (
     get_category_breakdown,
     get_recent_transactions,
@@ -53,6 +53,27 @@ def _create_user_without_expenses():
         return cursor.lastrowid
     finally:
         conn.close()
+
+
+def _count_expenses_for_user(user_id):
+    conn = get_db()
+    try:
+        row = conn.execute(
+            "SELECT COUNT(*) AS total FROM expenses WHERE user_id = ?",
+            (user_id,),
+        ).fetchone()
+        return row["total"]
+    finally:
+        conn.close()
+
+
+def _set_authenticated_session(client, user_id=None, user_name="Demo User", csrf_token="test-csrf-token"):
+    user_id = user_id or _demo_user_id()
+    with client.session_transaction() as session:
+        session["user_id"] = user_id
+        session["user_name"] = user_name
+        session["csrf_token"] = csrf_token
+    return user_id
 
 
 def test_get_user_by_id_valid(test_db):
@@ -133,6 +154,35 @@ def test_get_category_breakdown_with_date_range(test_db):
     ]
 
 
+def test_create_expense_inserts_row(test_db):
+    user_id = _demo_user_id()
+    before = _count_expenses_for_user(user_id)
+
+    expense_id = create_expense(
+        user_id=user_id,
+        amount=88.5,
+        category="Food",
+        date="2026-04-09",
+        description="Lunch with team",
+    )
+
+    conn = get_db()
+    try:
+        row = conn.execute(
+            "SELECT user_id, amount, category, date, description FROM expenses WHERE id = ?",
+            (expense_id,),
+        ).fetchone()
+    finally:
+        conn.close()
+
+    assert row["user_id"] == user_id
+    assert row["amount"] == 88.5
+    assert row["category"] == "Food"
+    assert row["date"] == "2026-04-09"
+    assert row["description"] == "Lunch with team"
+    assert _count_expenses_for_user(user_id) == before + 1
+
+
 def test_profile_redirects_when_unauthenticated(client):
     response = client.get("/profile")
     assert response.status_code == 302
@@ -143,6 +193,192 @@ def test_dashboard_redirects_when_unauthenticated(client):
     response = client.get("/dashboard")
     assert response.status_code == 302
     assert response.headers["Location"].endswith("/login")
+
+
+def test_add_expense_redirects_when_unauthenticated(client):
+    response = client.get("/expenses/add")
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/login")
+
+
+def test_add_expense_get_shows_form_for_authenticated_user(client):
+    _set_authenticated_session(client)
+
+    response = client.get("/expenses/add")
+    body = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "Add expense" in body
+    assert "name=\"amount\"" in body
+    assert "name=\"category\"" in body
+    assert "name=\"date\"" in body
+    assert "name=\"csrf_token\"" in body
+
+
+def test_add_expense_post_valid_data_inserts_and_redirects(client):
+    user_id = _set_authenticated_session(client)
+    before = _count_expenses_for_user(user_id)
+
+    response = client.post(
+        "/expenses/add",
+        data={
+            "csrf_token": "test-csrf-token",
+            "amount": "75.50",
+            "category": "Transport",
+            "date": "2026-04-10",
+            "description": "Cab fare",
+        },
+        follow_redirects=True,
+    )
+    body = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "Expense added successfully." in body
+    assert _count_expenses_for_user(user_id) == before + 1
+
+    conn = get_db()
+    try:
+        row = conn.execute(
+            """
+            SELECT amount, category, date, description
+            FROM expenses
+            WHERE user_id = ?
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+            (user_id,),
+        ).fetchone()
+    finally:
+        conn.close()
+
+    assert row["amount"] == 75.5
+    assert row["category"] == "Transport"
+    assert row["date"] == "2026-04-10"
+    assert row["description"] == "Cab fare"
+
+
+def test_add_expense_post_missing_required_fields_shows_error(client):
+    user_id = _set_authenticated_session(client)
+    before = _count_expenses_for_user(user_id)
+
+    response = client.post(
+        "/expenses/add",
+        data={
+            "csrf_token": "test-csrf-token",
+            "amount": "",
+            "category": "Food",
+            "date": "",
+            "description": "Missing required fields",
+        },
+    )
+    body = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "Amount, category, and date are required." in body
+    assert _count_expenses_for_user(user_id) == before
+
+
+def test_add_expense_post_non_positive_amount_shows_error(client):
+    user_id = _set_authenticated_session(client)
+    before = _count_expenses_for_user(user_id)
+
+    response = client.post(
+        "/expenses/add",
+        data={
+            "csrf_token": "test-csrf-token",
+            "amount": "0",
+            "category": "Food",
+            "date": "2026-04-09",
+            "description": "Invalid amount",
+        },
+    )
+    body = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "Amount must be a number greater than 0." in body
+    assert _count_expenses_for_user(user_id) == before
+
+
+def test_add_expense_post_invalid_date_shows_error(client):
+    user_id = _set_authenticated_session(client)
+    before = _count_expenses_for_user(user_id)
+
+    response = client.post(
+        "/expenses/add",
+        data={
+            "csrf_token": "test-csrf-token",
+            "amount": "12.5",
+            "category": "Food",
+            "date": "not-a-date",
+            "description": "Invalid date",
+        },
+    )
+    body = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "Date must be in YYYY-MM-DD format." in body
+    assert _count_expenses_for_user(user_id) == before
+
+
+def test_add_expense_post_invalid_category_shows_error(client):
+    user_id = _set_authenticated_session(client)
+    before = _count_expenses_for_user(user_id)
+
+    response = client.post(
+        "/expenses/add",
+        data={
+            "csrf_token": "test-csrf-token",
+            "amount": "18.0",
+            "category": "Crypto",
+            "date": "2026-04-09",
+            "description": "Invalid category",
+        },
+    )
+    body = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "Please select a valid category." in body
+    assert _count_expenses_for_user(user_id) == before
+
+
+def test_add_expense_post_future_date_shows_error(client):
+    user_id = _set_authenticated_session(client)
+    before = _count_expenses_for_user(user_id)
+    future_date = (datetime.now().date() + timedelta(days=1)).isoformat()
+
+    response = client.post(
+        "/expenses/add",
+        data={
+            "csrf_token": "test-csrf-token",
+            "amount": "18.0",
+            "category": "Food",
+            "date": future_date,
+            "description": "Future date",
+        },
+    )
+    body = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "Date cannot be in the future." in body
+    assert _count_expenses_for_user(user_id) == before
+
+
+def test_add_expense_post_missing_csrf_returns_bad_request(client):
+    user_id = _set_authenticated_session(client)
+    before = _count_expenses_for_user(user_id)
+
+    response = client.post(
+        "/expenses/add",
+        data={
+            "amount": "25.0",
+            "category": "Food",
+            "date": "2026-04-09",
+            "description": "No csrf",
+        },
+    )
+
+    assert response.status_code == 400
+    assert _count_expenses_for_user(user_id) == before
 
 
 def test_dashboard_shows_filter_bar(client):
