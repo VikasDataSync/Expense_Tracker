@@ -46,6 +46,27 @@ def get_user_by_email(email):
     return user
 
 
+def create_expense(user_id, amount, category, date, description):
+    """
+    Insert a new expense for a user.
+    Returns the new expense ID.
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            """
+            INSERT INTO expenses (user_id, amount, category, date, description)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (user_id, amount, category, date, description),
+        )
+        conn.commit()
+        return cursor.lastrowid
+    finally:
+        conn.close()
+
+
 def init_db():
     """
     Create the database tables if they don't exist.

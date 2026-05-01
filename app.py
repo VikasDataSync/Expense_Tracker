@@ -1,5 +1,12 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, abort, session
-from database.db import get_db, init_db, seed_db, create_user, get_user_by_email
+from database.db import (
+    get_db,
+    init_db,
+    seed_db,
+    create_user,
+    get_user_by_email,
+    create_expense,
+)
 from database.queries import (
     get_user_by_id,
     get_summary_stats,
@@ -7,11 +14,14 @@ from database.queries import (
     get_category_breakdown,
 )
 import sqlite3
+import secrets
 from werkzeug.security import check_password_hash
 from datetime import datetime, timedelta
 
 app = Flask(__name__)
 app.secret_key = "dev-secret-key-for-spendly"
+
+EXPENSE_CATEGORIES = ["Food", "Transport", "Bills", "Health", "Entertainment", "Shopping", "Other"]
 
 
 @app.template_filter("format_date_iso")
@@ -76,6 +86,31 @@ def get_date_filter_context(args):
         "is_last_6_months": is_last_6_months,
         "is_custom_range": is_custom_range,
     }
+
+
+def validate_expense_form(form_data, today):
+    if not form_data["amount"] or not form_data["category"] or not form_data["date"]:
+        return None, "Amount, category, and date are required."
+
+    try:
+        amount = float(form_data["amount"])
+    except ValueError:
+        return None, "Amount must be a number greater than 0."
+
+    if amount <= 0:
+        return None, "Amount must be a number greater than 0."
+
+    if form_data["category"] not in EXPENSE_CATEGORIES:
+        return None, "Please select a valid category."
+
+    expense_date = parse_date(form_data["date"])
+    if expense_date is None:
+        return None, "Date must be in YYYY-MM-DD format."
+
+    if expense_date > today:
+        return None, "Date cannot be in the future."
+
+    return amount, None
 
 
 # ------------------------------------------------------------------ #
@@ -273,9 +308,66 @@ def profile():
     )
 
 
-@app.route("/expenses/add")
+@app.route("/analytics")
+def analytics():
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+
+    return render_template("analytics.html")
+
+
+@app.route("/expenses/add", methods=["GET", "POST"])
 def add_expense():
-    return "Add expense — coming in Step 7"
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+
+    today = datetime.now().date()
+    today_iso = today.isoformat()
+    form_data = {
+        "amount": "",
+        "category": "",
+        "date": today_iso,
+        "description": "",
+    }
+    csrf_token = session.get("csrf_token")
+    if not csrf_token:
+        csrf_token = secrets.token_hex(16)
+        session["csrf_token"] = csrf_token
+
+    error = None
+    if request.method == "GET":
+        csrf_token = secrets.token_hex(16)
+        session["csrf_token"] = csrf_token
+    else:
+        form_token = request.form.get("csrf_token")
+        if not form_token or form_token != session.get("csrf_token"):
+            abort(400)
+
+        form_data["amount"] = request.form.get("amount", "").strip()
+        form_data["category"] = request.form.get("category", "").strip()
+        form_data["date"] = request.form.get("date", "").strip()
+        form_data["description"] = request.form.get("description", "").strip()
+
+        amount, error = validate_expense_form(form_data, today)
+        if error is None:
+            create_expense(
+                session["user_id"],
+                amount,
+                form_data["category"],
+                form_data["date"],
+                form_data["description"] or None,
+            )
+            flash("Expense added successfully.", "success")
+            return redirect(url_for("dashboard"))
+
+    return render_template(
+        "add_expense.html",
+        categories=EXPENSE_CATEGORIES,
+        form_data=form_data,
+        error=error,
+        today_iso=today_iso,
+        csrf_token=csrf_token,
+    )
 
 
 @app.route("/expenses/<int:id>/edit")
