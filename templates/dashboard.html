@@ -2,6 +2,10 @@
 
 {% block title %}Dashboard — Spendly{% endblock %}
 
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+{% endblock %}
+
 {% block content %}
 <section class="dashboard-page">
     <div class="dashboard-inner">
@@ -12,6 +16,40 @@
             </div>
             <a href="{{ url_for('add_expense') }}" class="btn-primary">Add expense</a>
         </header>
+
+        <section class="dashboard-panel filter-bar">
+            <div class="dashboard-panel-header">
+                <h2>Filter by date</h2>
+            </div>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <p class="auth-error">{{ message }}</p>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            <div class="filter-bar-content">
+                <div class="filter-presets">
+                    <span class="filter-label">Quick filters:</span>
+                    <a href="{{ url_for('dashboard') }}" class="btn-ghost {% if is_all_time %}active{% endif %}">All Time</a>
+                    <a href="{{ url_for('dashboard', date_from=this_month_from, date_to=today_iso) }}" class="btn-ghost {% if is_this_month %}active{% endif %}">This Month</a>
+                    <a href="{{ url_for('dashboard', date_from=last_3_months_from, date_to=today_iso) }}" class="btn-ghost {% if is_last_3_months %}active{% endif %}">Last 3 Months</a>
+                    <a href="{{ url_for('dashboard', date_from=last_6_months_from, date_to=today_iso) }}" class="btn-ghost {% if is_last_6_months %}active{% endif %}">Last 6 Months</a>
+                </div>
+                <form class="filter-custom-range {% if is_custom_range %}active{% endif %}" method="GET" action="{{ url_for('dashboard') }}">
+                    <div class="filter-input-group">
+                        <label for="date_from">From</label>
+                        <input type="date" id="date_from" name="date_from" value="{{ date_from or '' }}" max="{{ today_iso }}">
+                        <label for="date_to">To</label>
+                        <input type="date" id="date_to" name="date_to" value="{{ date_to or '' }}" max="{{ today_iso }}">
+                    </div>
+                    <button type="submit" class="btn-primary">Apply</button>
+                    {% if date_from or date_to %}
+                        <a href="{{ url_for('dashboard') }}" class="btn-ghost">Clear</a>
+                    {% endif %}
+                </form>
+            </div>
+        </section>
 
         <section class="dashboard-summary-grid">
             {% for stat in summary_stats %}
@@ -40,20 +78,26 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for transaction in recent_transactions %}
-                            <tr>
-                                <td>{{ transaction.date }}</td>
-                                <td>{{ transaction.description }}</td>
-                                <td>
-                                    <span class="dashboard-category-badge {{ transaction.category_class }}">
-                                        {{ transaction.category }}
-                                    </span>
-                                </td>
-                                <td class="dashboard-number-col">
-                                    <span class="dashboard-amount {{ transaction.amount_type }}">{{ transaction.amount }}</span>
-                                </td>
-                            </tr>
-                            {% endfor %}
+                            {% if recent_transactions %}
+                                {% for transaction in recent_transactions %}
+                                <tr>
+                                    <td>{{ transaction.date }}</td>
+                                    <td>{{ transaction.description }}</td>
+                                    <td>
+                                        <span class="dashboard-category-badge {{ transaction.category_class }}">
+                                            {{ transaction.category }}
+                                        </span>
+                                    </td>
+                                    <td class="dashboard-number-col">
+                                        <span class="dashboard-amount {{ transaction.amount_type }}">{{ transaction.amount }}</span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="4">No transactions yet.</td>
+                                </tr>
+                            {% endif %}
                         </tbody>
                     </table>
                 </div>
@@ -64,18 +108,22 @@
                     <h2>Category breakdown</h2>
                 </div>
                 <div class="dashboard-breakdown-list">
-                    {% for category in category_breakdown %}
-                    <div class="dashboard-breakdown-item">
-                        <div class="dashboard-breakdown-meta">
-                            <span>{{ category.name }}</span>
-                            <span>{{ category.total }}</span>
+                    {% if category_breakdown %}
+                        {% for category in category_breakdown %}
+                        <div class="dashboard-breakdown-item">
+                            <div class="dashboard-breakdown-meta">
+                                <span>{{ category.name }}</span>
+                                <span>{{ category.total }}</span>
+                            </div>
+                            <div class="dashboard-progress-track">
+                                <span class="dashboard-progress-fill {{ category.bar_class }}"></span>
+                            </div>
+                            <p class="dashboard-breakdown-share">{{ category.share }} of total spending</p>
                         </div>
-                        <div class="dashboard-progress-track">
-                            <span class="dashboard-progress-fill {{ category.bar_class }}"></span>
-                        </div>
-                        <p class="dashboard-breakdown-share">{{ category.share }} of total spending</p>
-                    </div>
-                    {% endfor %}
+                        {% endfor %}
+                    {% else %}
+                        <p class="dashboard-breakdown-share">No category data yet.</p>
+                    {% endif %}
                 </div>
             </aside>
         </div>

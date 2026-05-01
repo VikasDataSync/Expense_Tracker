@@ -2,6 +2,10 @@
 
 {% block title %}Profile — Spendly{% endblock %}
 
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+{% endblock %}
+
 {% block content %}
 <section class="dashboard-page">
     <div class="dashboard-inner">
@@ -20,6 +24,40 @@
             <p><strong>{{ user.name }}</strong></p>
             <p>{{ user.email }}</p>
             <p class="dashboard-breakdown-share">Member since {{ user.member_since }}</p>
+        </section>
+
+        <section class="dashboard-panel filter-bar">
+            <div class="dashboard-panel-header">
+                <h2>Filter by date</h2>
+            </div>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <p class="auth-error">{{ message }}</p>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            <div class="filter-bar-content">
+                <div class="filter-presets">
+                    <span class="filter-label">Quick filters:</span>
+                    <a href="{{ url_for('profile') }}" class="btn-ghost {% if is_all_time %}active{% endif %}">All Time</a>
+                    <a href="{{ url_for('profile', date_from=this_month_from, date_to=today_iso) }}" class="btn-ghost {% if is_this_month %}active{% endif %}">This Month</a>
+                    <a href="{{ url_for('profile', date_from=last_3_months_from, date_to=today_iso) }}" class="btn-ghost {% if is_last_3_months %}active{% endif %}">Last 3 Months</a>
+                    <a href="{{ url_for('profile', date_from=last_6_months_from, date_to=today_iso) }}" class="btn-ghost {% if is_last_6_months %}active{% endif %}">Last 6 Months</a>
+                </div>
+                <form class="filter-custom-range {% if is_custom_range %}active{% endif %}" method="GET" action="{{ url_for('profile') }}">
+                    <div class="filter-input-group">
+                        <label for="date_from">From</label>
+                        <input type="date" id="date_from" name="date_from" value="{{ date_from or '' }}" max="{{ today_iso }}">
+                        <label for="date_to">To</label>
+                        <input type="date" id="date_to" name="date_to" value="{{ date_to or '' }}" max="{{ today_iso }}">
+                    </div>
+                    <button type="submit" class="btn-primary">Apply</button>
+                    {% if date_from or date_to %}
+                        <a href="{{ url_for('profile') }}" class="btn-ghost">Clear</a>
+                    {% endif %}
+                </form>
+            </div>
         </section>
 
         <section class="dashboard-summary-grid">
