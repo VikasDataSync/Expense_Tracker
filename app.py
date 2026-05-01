@@ -8,13 +8,74 @@ from database.queries import (
 )
 import sqlite3
 from werkzeug.security import check_password_hash
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 app.secret_key = "dev-secret-key-for-spendly"
 
 
+@app.template_filter("format_date_iso")
+def format_date_iso(date_obj):
+    """Format a date object as ISO string (YYYY-MM-DD) for use in URLs."""
+    return date_obj.strftime("%Y-%m-%d")
+
+
 def format_inr(amount):
     return f"₹{amount:,.2f}"
+
+
+def parse_date(value):
+    """Parse an ISO date string (YYYY-MM-DD) to a date object."""
+    try:
+        return datetime.strptime(value, "%Y-%m-%d").date()
+    except (ValueError, TypeError):
+        return None
+
+
+def get_date_filter_context(args):
+    """Build validated date filter values and UI state from query parameters."""
+    date_from_raw = args.get("date_from")
+    date_to_raw = args.get("date_to")
+
+    date_from = parse_date(date_from_raw) if date_from_raw else None
+    date_to = parse_date(date_to_raw) if date_to_raw else None
+
+    # Filter only applies when both bounds are valid.
+    if not (date_from and date_to):
+        date_from = None
+        date_to = None
+
+    error_message = None
+    if date_from is not None and date_to is not None and date_from > date_to:
+        error_message = "Start date must be before end date."
+        date_from = None
+        date_to = None
+
+    today = datetime.now().date()
+    first_of_month = today.replace(day=1)
+    three_months_ago = today - timedelta(days=90)
+    six_months_ago = today - timedelta(days=180)
+
+    is_all_time = date_from is None and date_to is None
+    is_this_month = date_from == first_of_month and date_to == today
+    is_last_3_months = date_from == three_months_ago and date_to == today
+    is_last_6_months = date_from == six_months_ago and date_to == today
+    is_custom_range = not is_all_time and not (is_this_month or is_last_3_months or is_last_6_months)
+
+    return {
+        "error_message": error_message,
+        "date_from": date_from.isoformat() if date_from else None,
+        "date_to": date_to.isoformat() if date_to else None,
+        "today_iso": today.isoformat(),
+        "this_month_from": first_of_month.isoformat(),
+        "last_3_months_from": three_months_ago.isoformat(),
+        "last_6_months_from": six_months_ago.isoformat(),
+        "is_all_time": is_all_time,
+        "is_this_month": is_this_month,
+        "is_last_3_months": is_last_3_months,
+        "is_last_6_months": is_last_6_months,
+        "is_custom_range": is_custom_range,
+    }
 
 
 # ------------------------------------------------------------------ #
@@ -79,8 +140,15 @@ def dashboard():
     if not session.get("user_id"):
         return redirect(url_for("login"))
 
+    filter_context = get_date_filter_context(request.args)
+    if filter_context["error_message"]:
+        flash(filter_context["error_message"], "error")
+
+    date_from = filter_context["date_from"]
+    date_to = filter_context["date_to"]
     user_id = session["user_id"]
-    summary = get_summary_stats(user_id)
+    summary = get_summary_stats(user_id, date_from=date_from, date_to=date_to)
+    categories = get_category_breakdown(user_id, date_from=date_from, date_to=date_to)
 
     summary_stats = [
         {
@@ -103,14 +171,14 @@ def dashboard():
         },
         {
             "label": "Categories",
-            "value": str(len(get_category_breakdown(user_id))),
+            "value": str(len(categories)),
             "change": "Expense categories",
             "trend": "neutral",
         },
     ]
 
     recent_transactions = []
-    for item in get_recent_transactions(user_id):
+    for item in get_recent_transactions(user_id, date_from=date_from, date_to=date_to):
         recent_transactions.append(
             {
                 "date": item["date"],
@@ -123,7 +191,7 @@ def dashboard():
         )
 
     category_breakdown = []
-    for item in get_category_breakdown(user_id):
+    for item in categories:
         if item["pct"] >= 33:
             bar_class = "bar-fill-39"
         elif item["pct"] >= 24:
@@ -148,6 +216,7 @@ def dashboard():
         summary_stats=summary_stats,
         recent_transactions=recent_transactions,
         category_breakdown=category_breakdown,
+        **filter_context,
     )
 
 
@@ -184,12 +253,23 @@ def profile():
 
     session["user_name"] = user["name"]
 
+    filter_context = get_date_filter_context(request.args)
+    if filter_context["error_message"]:
+        flash(filter_context["error_message"], "error")
+
+    user_id = session["user_id"]
+
     return render_template(
         "profile.html",
         user=user,
-        summary_stats=get_summary_stats(session["user_id"]),
-        recent_transactions=get_recent_transactions(session["user_id"], limit=10),
-        category_breakdown=get_category_breakdown(session["user_id"]),
+        summary_stats=get_summary_stats(user_id, filter_context["date_from"], filter_context["date_to"]),
+        recent_transactions=get_recent_transactions(
+            user_id, limit=10, date_from=filter_context["date_from"], date_to=filter_context["date_to"]
+        ),
+        category_breakdown=get_category_breakdown(
+            user_id, date_from=filter_context["date_from"], date_to=filter_context["date_to"]
+        ),
+        **filter_context,
     )
 
 
