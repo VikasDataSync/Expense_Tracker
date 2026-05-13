@@ -1,0 +1,37 @@
+{
+  "hooks": [
+    {
+      "name": "code-formatter",
+      "description": "Format Python code with Black on write/edit operations",
+      "type": "post-operation",
+      "trigger": ["write", "edit"],
+      "matcher": "python",
+      "command": "black",
+      "enabled": true,
+      "extensions": [".py"],
+      "options": {
+        "line_length": 88,
+        "skip_string_normalization": false
+      }
+    },
+    {
+      "name": "protect-crucial-files",
+      "description": "Prevent deletion of critical files like .env, database files, etc.",
+      "type": "pre-operation",
+      "trigger": ["delete"],
+      "matcher": "bash",
+      "enabled": true,
+      "protected_patterns": [
+        ".env*",
+        "*.db",
+        "*.sqlite",
+        "*.sqlite3",
+        ".git/*",
+        "requirements.txt",
+        "app.py"
+      ],
+      "command": "bash -c 'if [[ \"$1\" =~ \\.(env|db|sqlite|sqlite3)$ ]] || [[ \"$1\" == \".git\"* ]] || [[ \"$1\" == \"requirements.txt\" ]] || [[ \"$1\" == \"app.py\" ]]; then echo \"Error: Cannot delete protected file: $1\"; exit 1; fi'",
+      "error_message": "This is a protected file and cannot be deleted. Contact admin if needed."
+    }
+  ]
+}

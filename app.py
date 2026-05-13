@@ -6,6 +6,8 @@ from database.db import (
     create_user,
     get_user_by_email,
     create_expense,
+    get_expense_by_id,
+    update_expense,
 )
 from database.queries import (
     get_user_by_id,
@@ -370,9 +372,79 @@ def add_expense():
     )
 
 
-@app.route("/expenses/<int:id>/edit")
+@app.route("/expenses/<int:id>/edit", methods=["GET", "POST"])
 def edit_expense(id):
-    return "Edit expense — coming in Step 8"
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+
+    # Load the expense
+    expense = get_expense_by_id(id)
+    if expense is None:
+        abort(404)
+
+    # Check ownership
+    if expense["user_id"] != session["user_id"]:
+        abort(403)
+
+    today = datetime.now().date()
+    today_iso = today.isoformat()
+    
+    form_data = {
+        "amount": "",
+        "category": "",
+        "date": today_iso,
+        "description": "",
+    }
+    csrf_token = session.get("csrf_token")
+    if not csrf_token:
+        csrf_token = secrets.token_hex(16)
+        session["csrf_token"] = csrf_token
+
+    error = None
+    if request.method == "GET":
+        csrf_token = secrets.token_hex(16)
+        session["csrf_token"] = csrf_token
+        form_data = {
+            "amount": str(expense["amount"]),
+            "category": expense["category"],
+            "date": expense["date"],
+            "description": expense["description"] or "",
+        }
+    else:
+        form_token = request.form.get("csrf_token")
+        if not form_token or form_token != session.get("csrf_token"):
+            abort(400)
+
+        form_data["amount"] = request.form.get("amount", "").strip()
+        form_data["category"] = request.form.get("category", "").strip()
+        form_data["date"] = request.form.get("date", "").strip()
+        form_data["description"] = request.form.get("description", "").strip()
+
+        amount, error = validate_expense_form(form_data, today)
+        if error is None:
+            success = update_expense(
+                id,
+                session["user_id"],
+                amount,
+                form_data["category"],
+                form_data["date"],
+                form_data["description"] or None,
+            )
+            if success:
+                flash("Expense updated successfully.", "success")
+                return redirect(url_for("dashboard"))
+            else:
+                abort(403)
+
+    return render_template(
+        "edit_expense.html",
+        categories=EXPENSE_CATEGORIES,
+        form_data=form_data,
+        error=error,
+        today_iso=today_iso,
+        csrf_token=csrf_token,
+        expense_id=id,
+    )
 
 
 @app.route("/expenses/<int:id>/delete")

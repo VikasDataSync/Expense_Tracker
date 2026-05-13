@@ -67,6 +67,39 @@ def create_expense(user_id, amount, category, date, description):
         conn.close()
 
 
+def get_expense_by_id(expense_id):
+    """
+    Retrieve a single expense by ID.
+    Returns the expense row if found, otherwise None.
+    """
+    conn = get_db()
+    expense = conn.execute("SELECT * FROM expenses WHERE id = ?", (expense_id,)).fetchone()
+    conn.close()
+    return expense
+
+
+def update_expense(expense_id, user_id, amount, category, date, description):
+    """
+    Update an expense if it belongs to the user.
+    Returns True if successful, False if not found or ownership check fails.
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            """
+            UPDATE expenses
+            SET amount = ?, category = ?, date = ?, description = ?
+            WHERE id = ? AND user_id = ?
+            """,
+            (amount, category, date, description, expense_id, user_id),
+        )
+        conn.commit()
+        return cursor.rowcount > 0
+    finally:
+        conn.close()
+
+
 def init_db():
     """
     Create the database tables if they don't exist.
