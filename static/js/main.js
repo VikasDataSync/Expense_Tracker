@@ -55,7 +55,7 @@
     }
 
     renderVerticalBars('monthlyChart', payload.monthly || [], 'month', 'total', true);
-    renderHorizontalBars('categoryChart', payload.category || [], 'name', 'total');
+    renderHorizontalBars('categoryChart', payload.category || [], 'name', 'amount');
     renderHorizontalBars('weekdayChart', payload.weekday || [], 'day', 'total');
 
     function renderVerticalBars(containerId, items, labelKey, valueKey, showAmount) {
