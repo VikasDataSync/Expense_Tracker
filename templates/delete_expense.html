@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Delete Expense — Spendly{% endblock %}
+
+{% block content %}
+<section class="add-expense-page">
+    <div class="add-expense-inner">
+        <header class="add-expense-header">
+            <h1 class="add-expense-title">Delete expense</h1>
+            <p class="add-expense-subtitle">Review this expense before permanently deleting it.</p>
+        </header>
+
+        <article class="add-expense-card">
+            <p class="auth-error">This action cannot be undone.</p>
+
+            <div class="delete-expense-summary">
+                <p><strong>Amount:</strong> {{ "₹{:,.2f}".format(expense.amount) }}</p>
+                <p><strong>Category:</strong> {{ expense.category }}</p>
+                <p><strong>Date:</strong> {{ expense.date }}</p>
+                <p><strong>Description:</strong> {{ expense.description or "—" }}</p>
+            </div>
+
+            <form method="POST" action="{{ url_for('delete_expense', id=expense.id) }}" class="add-expense-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="add-expense-actions">
+                    <a href="{{ url_for('dashboard') }}" class="btn-ghost">Cancel</a>
+                    <button type="submit" class="btn-danger">Delete expense</button>
+                </div>
+            </form>
+        </article>
+    </div>
+</section>
+{% endblock %}

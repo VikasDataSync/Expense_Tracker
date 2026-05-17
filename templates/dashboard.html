@@ -75,6 +75,7 @@
                                 <th>Description</th>
                                 <th>Category</th>
                                 <th class="dashboard-number-col">Amount</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -91,11 +92,16 @@
                                     <td class="dashboard-number-col">
                                         <span class="dashboard-amount {{ transaction.amount_type }}">{{ transaction.amount }}</span>
                                     </td>
+                                    <td>
+                                        <div class="dashboard-row-actions">
+                                            <a href="{{ url_for('delete_expense', id=transaction.id) }}" class="dashboard-action-link danger-link">Delete</a>
+                                        </div>
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             {% else %}
                                 <tr>
-                                    <td colspan="4">No transactions yet.</td>
+                                    <td colspan="5">No transactions yet.</td>
                                 </tr>
                             {% endif %}
                         </tbody>
