@@ -5,26 +5,105 @@
 {% block content %}
 <section class="analytics-page">
     <div class="analytics-shell">
-        <article class="analytics-card">
-            <div class="analytics-icon-wrap" aria-hidden="true">
-                <span class="analytics-icon">◷</span>
+        <header class="analytics-header">
+            <div>
+                <h1 class="analytics-title">Analytics</h1>
+                <p class="analytics-copy">Track trends, category mix, and weekly spending patterns.</p>
             </div>
+        </header>
 
-            <p class="analytics-badge">COMING SOON</p>
-
-            <h1 class="analytics-title">Advanced Analytics</h1>
-            <p class="analytics-copy">
-                Smarter spending insights and interactive visualizations are coming soon to Spendly.
-            </p>
-
-            <div class="analytics-dots" aria-hidden="true">
-                <span></span>
-                <span></span>
-                <span></span>
+        <section class="analytics-filter-bar">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <p class="auth-error">{{ message }}</p>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            <div class="analytics-filter-content">
+                <div class="analytics-filter-presets">
+                    <span class="analytics-filter-label">Quick filters:</span>
+                    <a href="{{ url_for('analytics') }}" class="btn-ghost {% if is_all_time %}active{% endif %}">All Time</a>
+                    <a href="{{ url_for('analytics', date_from=this_month_from, date_to=today_iso) }}" class="btn-ghost {% if is_this_month %}active{% endif %}">This Month</a>
+                    <a href="{{ url_for('analytics', date_from=last_3_months_from, date_to=today_iso) }}" class="btn-ghost {% if is_last_3_months %}active{% endif %}">Last 3 Months</a>
+                    <a href="{{ url_for('analytics', date_from=last_6_months_from, date_to=today_iso) }}" class="btn-ghost {% if is_last_6_months %}active{% endif %}">Last 6 Months</a>
+                </div>
+                <form class="analytics-filter-form {% if is_custom_range %}active{% endif %}" method="GET" action="{{ url_for('analytics') }}">
+                    <label for="date_from">From</label>
+                    <input type="date" id="date_from" name="date_from" value="{{ date_from or '' }}" max="{{ today_iso }}">
+                    <label for="date_to">To</label>
+                    <input type="date" id="date_to" name="date_to" value="{{ date_to or '' }}" max="{{ today_iso }}">
+                    <button type="submit" class="btn-primary">Apply</button>
+                    {% if date_from or date_to %}
+                        <a href="{{ url_for('analytics') }}" class="btn-ghost">Clear</a>
+                    {% endif %}
+                </form>
             </div>
+        </section>
 
-            <p class="analytics-footnote">Smarter decisions are almost here.</p>
-        </article>
+        <section class="analytics-summary-grid">
+            <article class="dashboard-stat-card">
+                <p class="dashboard-stat-label">Total spent</p>
+                <p class="dashboard-stat-value">{{ format_inr(summary.total_spent) }}</p>
+            </article>
+            <article class="dashboard-stat-card">
+                <p class="dashboard-stat-label">Transactions</p>
+                <p class="dashboard-stat-value">{{ summary.transaction_count }}</p>
+            </article>
+            <article class="dashboard-stat-card">
+                <p class="dashboard-stat-label">Top category</p>
+                <p class="dashboard-stat-value">{{ summary.top_category }}</p>
+            </article>
+        </section>
+
+        {% if has_data %}
+            <section class="analytics-grid">
+                <article class="analytics-card">
+                    <h2>Monthly trend</h2>
+                    <div id="monthlyChart" class="analytics-chart"></div>
+                </article>
+                <article class="analytics-card">
+                    <h2>Category distribution</h2>
+                    <div id="categoryChart" class="analytics-chart"></div>
+                </article>
+                <article class="analytics-card">
+                    <h2>Weekday pattern</h2>
+                    <div id="weekdayChart" class="analytics-chart"></div>
+                </article>
+                <article class="analytics-card">
+                    <h2>Top expenses</h2>
+                    <div class="dashboard-table-wrap">
+                        <table class="dashboard-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Description</th>
+                                    <th>Category</th>
+                                    <th class="dashboard-number-col">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in top_expenses %}
+                                <tr>
+                                    <td>{{ item.date }}</td>
+                                    <td>{{ item.description or "—" }}</td>
+                                    <td>{{ item.category }}</td>
+                                    <td class="dashboard-number-col">{{ format_inr(item.amount) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+            </section>
+        {% else %}
+            <article class="analytics-empty-state">
+                <h2>No analytics data yet.</h2>
+                <p>Add expenses to start seeing trends and visual insights.</p>
+            </article>
+        {% endif %}
+
+        <script id="analytics-data" type="application/json">{{ analytics_data | tojson }}</script>
     </div>
 </section>
 {% endblock %}

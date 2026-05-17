@@ -15,6 +15,10 @@ from database.queries import (
     get_summary_stats,
     get_recent_transactions,
     get_category_breakdown,
+    get_monthly_spend_trend,
+    get_category_distribution,
+    get_weekday_spend,
+    get_top_expenses,
 )
 import sqlite3
 import secrets
@@ -317,7 +321,35 @@ def analytics():
     if not session.get("user_id"):
         return redirect(url_for("login"))
 
-    return render_template("analytics.html")
+    filter_context = get_date_filter_context(request.args)
+    if filter_context["error_message"]:
+        flash(filter_context["error_message"], "error")
+
+    user_id = session["user_id"]
+    date_from = filter_context["date_from"]
+    date_to = filter_context["date_to"]
+
+    summary = get_summary_stats(user_id, date_from=date_from, date_to=date_to)
+    monthly_trend = get_monthly_spend_trend(user_id, date_from=date_from, date_to=date_to)
+    category_distribution = get_category_distribution(user_id, date_from=date_from, date_to=date_to)
+    weekday_pattern = get_weekday_spend(user_id, date_from=date_from, date_to=date_to)
+    top_expenses = get_top_expenses(user_id, limit=5, date_from=date_from, date_to=date_to)
+
+    analytics_data = {
+        "monthly": monthly_trend,
+        "category": category_distribution,
+        "weekday": weekday_pattern,
+    }
+
+    return render_template(
+        "analytics.html",
+        summary=summary,
+        has_data=summary["transaction_count"] > 0,
+        analytics_data=analytics_data,
+        top_expenses=top_expenses,
+        format_inr=format_inr,
+        **filter_context,
+    )
 
 
 @app.route("/expenses/add", methods=["GET", "POST"])
