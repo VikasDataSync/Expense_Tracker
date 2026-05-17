@@ -1,108 +1,76 @@
-# 💸 Expense Tracker
+# Spendly — Full-Stack Expense Tracker
 
-### 📊 Simple & Efficient Personal Finance Manager
+**Live Demo:** https://spendly-expense-tracker-production.up.railway.app
 
-A clean and practical application to **track daily expenses, manage spending, and stay financially organized**.
+Spendly is a production-deployed Flask application where users can register, log in, manage expenses (create, edit, delete), filter by date ranges, and view analytics with multiple visualizations.
 
----
+## Why this project stands out
 
-## 🚀 Overview
+- End-to-end feature ownership: auth, CRUD, filtering, analytics, deployment
+- Security-first patterns: hashed passwords, CSRF checks, ownership authorization
+- Real product flow: dashboard, profile, analytics, and clean UX across pages
+- Deployed and publicly accessible for quick recruiter review
 
-This project helps users record and monitor their expenses in an organized way.
-It is designed with a focus on **simplicity, usability, and real-world application**.
+## Features
 
----
+- User authentication (register/login/logout)
+- Expense CRUD (add, edit, delete)
+- Date filtering (all-time, presets, custom range)
+- Analytics dashboard with:
+  - Monthly spending trend
+  - Category distribution
+  - Weekday spending pattern
+  - Top-expense table
+- Responsive UI with Jinja2 templates + vanilla CSS/JS
 
-## ✨ Features
+## Tech Stack
 
-* ➕ Add new expenses
-* 📝 Edit existing expenses
-* ❌ Delete expenses
-* 📋 View all expenses in one place
-* 🗂️ Categorize expenses
-* 📅 Track expenses over time
+- **Backend:** Python, Flask
+- **Database:** SQLite
+- **Frontend:** Jinja2 templates, vanilla CSS, vanilla JavaScript
+- **Testing:** pytest, pytest-flask
+- **Deployment:** Railway
 
----
+## Demo Credentials
 
-## 🛠️ Tech Stack
+- **Email:** `demo@spendly.com`
+- **Password:** `demo123`
 
-* **Programming Language:** Python *(update if different)*
-* **Framework / Libraries:** (mention what you used)
-* **Database:** (if used)
-* **Version Control:** Git & GitHub
-
----
-
-## 📸 Screenshots
-
-> Add your project screenshots here (recommended for recruiters)
-
----
-
-## ⚙️ Installation & Setup
-
-### 1. Clone the Repository
+## Local Setup
 
 ```bash
 git clone https://github.com/VikasDataSync/Expense_Tracker.git
 cd Expense_Tracker
-```
-
-### 2. Install Dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### 3. Run the Application
-
-```bash
+python -m pip install -r requirements.txt
 python app.py
 ```
 
----
+App runs on `http://127.0.0.1:5001` locally.
 
-## 📂 Project Structure
+## Project Structure
 
-```
+```text
 Expense_Tracker/
-│── src/                # Source code
-│── data/               # Data files (if any)
-│── app.py              # Main application file
-│── requirements.txt    # Dependencies
+├── app.py
+├── database/
+│   ├── db.py
+│   └── queries.py
+├── templates/
+├── static/
+│   ├── css/
+│   └── js/
+├── tests/
+└── requirements.txt
 ```
 
----
+## Quality Signals
 
-## 🎯 Use Case
+- Automated tests with `pytest`
+- Parameterized SQL queries (no ORM)
+- Clear separation of concerns (routes, DB helpers, templates, JS)
+- Public deployment and reproducible local setup
 
-* Personal expense tracking
-* Budget management
-* Daily financial monitoring
+## Author
 
----
-
-## 🚀 Future Improvements
-
-* 📊 Data visualization (charts/graphs)
-* 🔐 User authentication
-* ☁️ Deployment on cloud
-* 📱 Mobile-friendly UI
-
----
-
-## 👨‍💻 Author
-
-**Vikas Singh**
-🔗 GitHub: https://github.com/VikasDataSync
-
----
-
-## ⭐ Support
-
-If you found this project helpful:
-
-* Give it a ⭐ on GitHub
-* Share it with others
-
----
+**Vikas Singh**  
+GitHub: https://github.com/VikasDataSync
