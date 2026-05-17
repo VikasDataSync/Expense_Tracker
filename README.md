@@ -1,42 +1,58 @@
-# Spendly — Full-Stack Expense Tracker
+# Spendly — Expense Tracking Web Application
 
-**Live Demo:** https://spendly-expense-tracker-production.up.railway.app
+Spendly is a full-stack Flask application for personal expense management, built with server-rendered templates and deployed publicly.
 
-Spendly is a production-deployed Flask application where users can register, log in, manage expenses (create, edit, delete), filter by date ranges, and view analytics with multiple visualizations.
+**Live Application:** https://spendly-expense-tracker-production.up.railway.app
 
-## Why this project stands out
+## Key Capabilities
 
-- End-to-end feature ownership: auth, CRUD, filtering, analytics, deployment
-- Security-first patterns: hashed passwords, CSRF checks, ownership authorization
-- Real product flow: dashboard, profile, analytics, and clean UX across pages
-- Deployed and publicly accessible for quick recruiter review
-
-## Features
-
-- User authentication (register/login/logout)
-- Expense CRUD (add, edit, delete)
-- Date filtering (all-time, presets, custom range)
-- Analytics dashboard with:
-  - Monthly spending trend
+- User authentication: registration, login, and logout
+- Expense lifecycle management: create, edit, and delete
+- Date-based filtering: presets and custom ranges
+- Analytics dashboard:
+  - Monthly spend trend
   - Category distribution
-  - Weekday spending pattern
-  - Top-expense table
-- Responsive UI with Jinja2 templates + vanilla CSS/JS
+  - Weekday spend pattern
+  - Top-expense breakdown
 
-## Tech Stack
+## Technical Stack
 
 - **Backend:** Python, Flask
 - **Database:** SQLite
-- **Frontend:** Jinja2 templates, vanilla CSS, vanilla JavaScript
+- **Frontend:** Jinja2, vanilla CSS, vanilla JavaScript
 - **Testing:** pytest, pytest-flask
-- **Deployment:** Railway
+- **Hosting:** Railway
 
-## Demo Credentials
+## Architecture Overview
+
+```text
+Expense_Tracker/
+├── app.py                 # Route layer and request handling
+├── database/
+│   ├── db.py              # Connection + write helpers
+│   └── queries.py         # Read/query helpers
+├── templates/             # Jinja2 templates
+├── static/
+│   ├── css/               # Styling
+│   └── js/                # Frontend behavior and chart rendering
+├── tests/                 # Route and query test coverage
+└── requirements.txt
+```
+
+## Security and Quality Practices
+
+- Password hashing with Werkzeug
+- CSRF token validation on mutating forms
+- Ownership authorization for expense updates/deletes
+- Parameterized SQL queries throughout (no ORM)
+- Automated regression coverage with `pytest`
+
+## Demo Access
 
 - **Email:** `demo@spendly.com`
 - **Password:** `demo123`
 
-## Local Setup
+## Run Locally
 
 ```bash
 git clone https://github.com/VikasDataSync/Expense_Tracker.git
@@ -45,30 +61,7 @@ python -m pip install -r requirements.txt
 python app.py
 ```
 
-App runs on `http://127.0.0.1:5001` locally.
-
-## Project Structure
-
-```text
-Expense_Tracker/
-├── app.py
-├── database/
-│   ├── db.py
-│   └── queries.py
-├── templates/
-├── static/
-│   ├── css/
-│   └── js/
-├── tests/
-└── requirements.txt
-```
-
-## Quality Signals
-
-- Automated tests with `pytest`
-- Parameterized SQL queries (no ORM)
-- Clear separation of concerns (routes, DB helpers, templates, JS)
-- Public deployment and reproducible local setup
+Local URL: `http://127.0.0.1:5001`
 
 ## Author
 
