@@ -7,10 +7,14 @@ from app import app as flask_app
 from database import db as db_module
 from database.db import create_expense, get_db, init_db, seed_db
 from database.queries import (
+    get_category_distribution,
     get_category_breakdown,
+    get_monthly_spend_trend,
     get_recent_transactions,
     get_summary_stats,
+    get_top_expenses,
     get_user_by_id,
+    get_weekday_spend,
 )
 
 
@@ -185,6 +189,33 @@ def test_get_category_breakdown_with_date_range(test_db):
         {"name": "Bills", "amount": 120.0, "pct": 81},
         {"name": "Health", "amount": 28.74, "pct": 19},
     ]
+
+
+def test_get_monthly_spend_trend_default_window(test_db):
+    trend = get_monthly_spend_trend(_demo_user_id(), months=6)
+    assert len(trend) == 6
+    april = [item for item in trend if item["month_key"] == "2026-04"][0]
+    assert april["total"] == 346.24
+
+
+def test_get_category_distribution_matches_breakdown(test_db):
+    distribution = get_category_distribution(_demo_user_id())
+    assert len(distribution) == 7
+    assert sum(item["pct"] for item in distribution) == 100
+
+
+def test_get_weekday_spend_returns_week_order(test_db):
+    weekday = get_weekday_spend(_demo_user_id())
+    assert [item["day"] for item in weekday] == ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    assert round(sum(item["total"] for item in weekday), 2) == 346.24
+
+
+def test_get_top_expenses_descending_by_amount(test_db):
+    rows = get_top_expenses(_demo_user_id(), limit=5)
+    assert len(rows) == 5
+    amounts = [row["amount"] for row in rows]
+    assert amounts == sorted(amounts, reverse=True)
+    assert rows[0]["description"] == "Electricity bill"
 
 
 def test_create_expense_inserts_row(test_db):
@@ -647,3 +678,73 @@ def test_delete_expense_post_invalid_csrf_returns_bad_request(client):
 
     assert response.status_code == 400
     assert _expense_exists(expense_id)
+
+
+def test_analytics_redirects_when_unauthenticated(client):
+    response = client.get("/analytics")
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/login")
+
+
+def test_analytics_shows_multiple_visualizations(client):
+    _set_authenticated_session(client)
+    response = client.get("/analytics")
+    body = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "Monthly trend" in body
+    assert "Category distribution" in body
+    assert "Weekday pattern" in body
+    assert "Top expenses" in body
+    assert "id=\"monthlyChart\"" in body
+    assert "id=\"categoryChart\"" in body
+    assert "id=\"weekdayChart\"" in body
+
+
+def test_analytics_malformed_date_falls_back_to_all_time(client):
+    _set_authenticated_session(client)
+    response = client.get("/analytics?date_from=bad-date&date_to=2026-04-08")
+    body = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "₹346.24" in body
+    assert ">8<" in body
+
+
+def test_analytics_range_with_no_expenses_shows_empty_state(client):
+    _set_authenticated_session(client)
+    response = client.get("/analytics?date_from=2026-05-01&date_to=2026-05-10")
+    body = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "No analytics data yet." in body
+
+
+def test_analytics_only_uses_logged_in_user_data(client):
+    demo_user_id = _set_authenticated_session(client)
+
+    conn = get_db()
+    try:
+        cursor = conn.execute(
+            "INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)",
+            ("Private User", "private@spendly.com", "hash"),
+        )
+        other_user_id = cursor.lastrowid
+        conn.execute(
+            """
+            INSERT INTO expenses (user_id, amount, category, date, description)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (other_user_id, 9999.0, "Shopping", "2026-04-09", "Private high expense"),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    response = client.get("/analytics")
+    body = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "Private high expense" not in body
+    assert "₹9,999.00" not in body
+    assert _count_expenses_for_user(demo_user_id) == 8
