@@ -825,7 +825,7 @@ a { color: inherit; text-decoration: none; }
 }
 
 /* ------------------------------------------------------------------ */
-/* Analytics coming soon page                                          */
+/* Analytics page                                                      */
 /* ------------------------------------------------------------------ */
 
 .analytics-page {
@@ -835,110 +835,189 @@ a { color: inherit; text-decoration: none; }
 .analytics-shell {
     max-width: var(--max-width);
     margin: 0 auto;
-    min-height: 520px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    background: #f2f2f2;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem;
-}
-
-.analytics-card {
-    width: 100%;
-    max-width: 420px;
-    background: var(--paper-card);
-    border: 1px solid var(--border-soft);
-    border-radius: 22px;
-    padding: 2.2rem 1.9rem 1.8rem;
-    text-align: center;
-    position: relative;
-    overflow: hidden;
-}
-
-.analytics-card::before,
-.analytics-card::after {
-    content: "";
-    position: absolute;
-    width: 90px;
-    height: 90px;
-    border-radius: 50%;
-    background: var(--paper);
-}
-
-.analytics-card::before {
-    top: -45px;
-    right: -45px;
-}
-
-.analytics-card::after {
-    bottom: -45px;
-    left: -45px;
-}
-
-.analytics-icon-wrap {
-    width: 92px;
-    height: 92px;
-    margin: 0 auto 1.15rem;
-    border-radius: 18px;
-    background: var(--accent);
     display: grid;
-    place-items: center;
+    gap: 1.2rem;
 }
 
-.analytics-icon {
-    color: var(--paper);
-    font-size: 2.2rem;
-    line-height: 1;
-}
-
-.analytics-badge {
-    display: inline-block;
-    background: var(--accent);
-    color: var(--paper);
-    border-radius: 999px;
-    padding: 0.35rem 0.9rem;
-    font-size: 0.72rem;
-    letter-spacing: 0.08em;
-    font-weight: 600;
-    margin-bottom: 1.15rem;
+.analytics-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
 }
 
 .analytics-title {
     font-family: var(--font-body);
-    font-size: 2.05rem;
+    font-size: 2rem;
     line-height: 1.1;
     color: var(--ink);
-    margin-bottom: 1rem;
+    margin-bottom: 0.35rem;
 }
 
 .analytics-copy {
     color: var(--ink-muted);
-    font-size: 1rem;
-    line-height: 1.6;
-    max-width: 320px;
-    margin: 0 auto 1.5rem;
+    font-size: 0.98rem;
 }
 
-.analytics-dots {
+.analytics-filter-bar {
+    background: var(--paper-card);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+}
+
+.analytics-filter-content {
     display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: space-between;
     align-items: center;
-    justify-content: center;
+}
+
+.analytics-filter-presets {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.analytics-filter-label {
+    font-size: 0.85rem;
+    color: var(--ink-muted);
+    font-weight: 500;
+}
+
+.analytics-filter-presets .btn-ghost.active {
+    background: var(--accent-light);
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.analytics-filter-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.analytics-filter-form label {
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+    font-weight: 500;
+}
+
+.analytics-filter-form input[type="date"] {
+    padding: 0.5rem 0.7rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    background: var(--paper-card);
+}
+
+.analytics-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.analytics-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.analytics-card {
+    background: var(--paper-card);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+}
+
+.analytics-card h2 {
+    font-size: 1rem;
+    margin-bottom: 0.8rem;
+}
+
+.analytics-chart {
+    min-height: 240px;
+}
+
+.analytics-bars-vertical {
+    height: 240px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(74px, 1fr));
     gap: 0.65rem;
-    margin-bottom: 1rem;
+    align-items: end;
 }
 
-.analytics-dots span {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
+.analytics-vertical-item {
+    display: grid;
+    gap: 0.35rem;
+    text-align: center;
+    height: 100%;
+    grid-template-rows: 1fr auto auto;
+}
+
+.analytics-vertical-fill {
+    align-self: end;
+    width: 100%;
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
     background: var(--accent);
+    min-height: 3px;
 }
 
-.analytics-footnote {
-    color: var(--ink-faint);
+.analytics-vertical-item strong {
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+}
+
+.analytics-vertical-item small {
+    font-size: 0.75rem;
+    color: var(--ink-muted);
+}
+
+.analytics-bars-horizontal {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.analytics-horizontal-meta {
+    display: flex;
+    justify-content: space-between;
     font-size: 0.9rem;
+    margin-bottom: 0.3rem;
+}
+
+.analytics-horizontal-track {
+    width: 100%;
+    height: 10px;
+    background: var(--paper);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.analytics-horizontal-fill {
+    display: block;
+    height: 100%;
+    background: var(--accent-2);
+    border-radius: 999px;
+}
+
+.analytics-empty-state {
+    background: var(--paper-card);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-md);
+    text-align: center;
+    padding: 2rem 1rem;
+}
+
+.analytics-empty-state h2 {
+    margin-bottom: 0.4rem;
+}
+
+.analytics-empty-state p {
+    color: var(--ink-muted);
 }
 
 /* ------------------------------------------------------------------ */
@@ -1035,18 +1114,23 @@ a { color: inherit; text-decoration: none; }
         padding: 2rem 1rem 3rem;
     }
 
-    .analytics-shell {
-        min-height: auto;
-        padding: 1rem;
-    }
-
-    .analytics-card {
-        border-radius: 18px;
-        padding: 1.8rem 1.2rem 1.5rem;
-    }
-
     .analytics-title {
         font-size: 1.65rem;
+    }
+
+    .analytics-filter-content,
+    .analytics-filter-form {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .analytics-summary-grid,
+    .analytics-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .analytics-chart {
+        min-height: 200px;
     }
 }
 
