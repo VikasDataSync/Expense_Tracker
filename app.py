@@ -8,6 +8,7 @@ from database.db import (
     create_expense,
     get_expense_by_id,
     update_expense,
+    delete_expense as delete_expense_db,
 )
 from database.queries import (
     get_user_by_id,
@@ -218,6 +219,7 @@ def dashboard():
     for item in get_recent_transactions(user_id, date_from=date_from, date_to=date_to):
         recent_transactions.append(
             {
+                "id": item["id"],
                 "date": item["date"],
                 "description": item["description"],
                 "category": item["category"],
@@ -447,9 +449,41 @@ def edit_expense(id):
     )
 
 
-@app.route("/expenses/<int:id>/delete")
+@app.route("/expenses/<int:id>/delete", methods=["GET", "POST"])
 def delete_expense(id):
-    return "Delete expense — coming in Step 9"
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+
+    expense = get_expense_by_id(id)
+    if expense is None:
+        abort(404)
+
+    if expense["user_id"] != session["user_id"]:
+        abort(403)
+
+    csrf_token = session.get("csrf_token")
+    if not csrf_token:
+        csrf_token = secrets.token_hex(16)
+        session["csrf_token"] = csrf_token
+
+    if request.method == "GET":
+        csrf_token = secrets.token_hex(16)
+        session["csrf_token"] = csrf_token
+        return render_template(
+            "delete_expense.html",
+            expense=expense,
+            csrf_token=csrf_token,
+        )
+
+    form_token = request.form.get("csrf_token")
+    if not form_token or form_token != session.get("csrf_token"):
+        abort(400)
+
+    if not delete_expense_db(id, session["user_id"]):
+        abort(404)
+
+    flash("Expense deleted successfully.", "success")
+    return redirect(url_for("dashboard"))
 
 
 if __name__ == "__main__":

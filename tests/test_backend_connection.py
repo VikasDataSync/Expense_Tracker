@@ -67,6 +67,39 @@ def _count_expenses_for_user(user_id):
         conn.close()
 
 
+def _expense_exists(expense_id):
+    conn = get_db()
+    try:
+        row = conn.execute(
+            "SELECT 1 FROM expenses WHERE id = ?",
+            (expense_id,),
+        ).fetchone()
+        return row is not None
+    finally:
+        conn.close()
+
+
+def _create_other_user_expense():
+    conn = get_db()
+    try:
+        cursor = conn.execute(
+            "INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)",
+            ("Other User", "other@spendly.com", "hash"),
+        )
+        other_user_id = cursor.lastrowid
+        cursor = conn.execute(
+            """
+            INSERT INTO expenses (user_id, amount, category, date, description)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (other_user_id, 50.0, "Food", "2026-04-11", "Other user expense"),
+        )
+        conn.commit()
+        return other_user_id, cursor.lastrowid
+    finally:
+        conn.close()
+
+
 def _set_authenticated_session(client, user_id=None, user_name="Demo User", csrf_token="test-csrf-token"):
     user_id = user_id or _demo_user_id()
     with client.session_transaction() as session:
@@ -118,7 +151,7 @@ def test_get_summary_stats_with_date_range(test_db):
 def test_get_recent_transactions_with_expenses(test_db):
     rows = get_recent_transactions(_demo_user_id())
     assert len(rows) == 8
-    assert list(rows[0].keys()) == ["date", "description", "category", "amount"]
+    assert list(rows[0].keys()) == ["id", "date", "description", "category", "amount"]
     assert rows[0]["date"] == "2026-04-08"
     assert rows[-1]["date"] == "2026-04-01"
 
@@ -549,3 +582,68 @@ def test_profile_preset_links_use_calculated_route_dates(client):
     assert f"/profile?date_from={this_month_from}&amp;date_to={today_iso}" in body
     assert f"/profile?date_from={last_3_months_from}&amp;date_to={today_iso}" in body
     assert f"/profile?date_from={last_6_months_from}&amp;date_to={today_iso}" in body
+
+
+def test_delete_expense_redirects_when_unauthenticated(client):
+    response = client.get("/expenses/1/delete")
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/login")
+
+
+def test_delete_expense_get_shows_confirmation_for_owner(client):
+    _set_authenticated_session(client)
+    expense_id = get_recent_transactions(_demo_user_id(), limit=1)[0]["id"]
+
+    response = client.get(f"/expenses/{expense_id}/delete")
+    body = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "Delete expense" in body
+    assert "This action cannot be undone." in body
+    assert "name=\"csrf_token\"" in body
+
+
+def test_delete_expense_post_valid_csrf_deletes_and_redirects(client):
+    user_id = _set_authenticated_session(client)
+    expense_id = get_recent_transactions(user_id, limit=1)[0]["id"]
+    before = _count_expenses_for_user(user_id)
+
+    response = client.post(
+        f"/expenses/{expense_id}/delete",
+        data={"csrf_token": "test-csrf-token"},
+        follow_redirects=True,
+    )
+    body = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "Expense deleted successfully." in body
+    assert _count_expenses_for_user(user_id) == before - 1
+    assert not _expense_exists(expense_id)
+
+
+def test_delete_expense_for_other_user_returns_forbidden(client):
+    _set_authenticated_session(client)
+    _, other_expense_id = _create_other_user_expense()
+
+    response = client.get(f"/expenses/{other_expense_id}/delete")
+    assert response.status_code == 403
+
+
+def test_delete_expense_missing_returns_not_found(client):
+    _set_authenticated_session(client)
+
+    response = client.get("/expenses/999999/delete")
+    assert response.status_code == 404
+
+
+def test_delete_expense_post_invalid_csrf_returns_bad_request(client):
+    _set_authenticated_session(client)
+    expense_id = get_recent_transactions(_demo_user_id(), limit=1)[0]["id"]
+
+    response = client.post(
+        f"/expenses/{expense_id}/delete",
+        data={"csrf_token": "wrong-token"},
+    )
+
+    assert response.status_code == 400
+    assert _expense_exists(expense_id)

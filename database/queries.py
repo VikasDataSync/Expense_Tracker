@@ -84,7 +84,7 @@ def get_recent_transactions(user_id, limit=10, date_from=None, date_to=None):
 
         rows = conn.execute(
             f"""
-            SELECT date, description, category, amount
+            SELECT id, date, description, category, amount
             {base_query}
             {date_filter}
             ORDER BY date DESC, id DESC
@@ -95,6 +95,7 @@ def get_recent_transactions(user_id, limit=10, date_from=None, date_to=None):
 
         return [
             {
+                "id": row["id"],
                 "date": row["date"],
                 "description": row["description"],
                 "category": row["category"],
